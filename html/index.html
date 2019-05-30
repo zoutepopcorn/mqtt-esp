@@ -1,0 +1,197 @@
+
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>Open test</title>
+  <!-- MOBILE SETTINGS -->
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="user-scalable=no" />
+
+  <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
+  <!-- <link rel="manifest" href="site.webmanifest"> -->
+  <link rel="manifest" href="/manifest.json">
+  <link rel="mask-icon" href="safari-pinned-tab.svg" color="#5bbad5">
+  <meta name="msapplication-TileColor" content="#da532c">
+  <meta name="theme-color" content="#fffff">
+
+    <style media="screen">
+    body,
+    html {
+      height: 100%;
+      overflow: hidden;
+    }
+
+    .full {
+      width: 100vw;
+      position: fixed;
+      bottom: 25vh;
+    }
+    #info {
+      position: fixed;
+      bottom: 0px;
+      height: 5vh;
+      width: 100vw;
+      z-index: 999;
+      text-align: center;
+      color: #B00;
+      display: none;
+    }
+    h1 {
+      opacity: 0.5;
+      background-color: #000;
+      color: #fff;
+    }
+    
+    .term {
+      position: absolute;
+      bottom: 0px;
+      width: 100vw;
+    }
+    
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.1.0/paho-mqtt.js"></script>
+  </head>
+  
+  <body>
+  
+   
+    <h1 class="term"><div id="term"></div></h1>
+    <h1 id="info">.. . ..</h1>
+    
+<script>
+  // MOVE TO LOCALSTORAGE ! HARDCODED FOR NOW !!!
+  // Websocket port in Cloudmqtt
+  const CONN = {
+        host: "m20.cloudmqtt.com",
+        port: 34300,
+        user: "CLOUDMQTT_USERNAME",
+        password: "CLOUDMQTT_PASSWORD"
+  }
+
+
+  const termOk = (msg) => {
+      const node = document.createElement("div");
+      const textnode = document.createTextNode(`✅ ${msg}`);
+      node.appendChild(textnode);
+      document.getElementById("term").appendChild(node);
+  }
+  
+  const termFail = (msg) => {
+      const node = document.createElement("div");
+      const textnode = document.createTextNode(`❌  ${msg}`);
+      node.appendChild(textnode);
+      document.getElementById("term").appendChild(node);
+  }
+  
+  const termWait = (msg) => {
+      const node = document.createElement("div");
+      const textnode = document.createTextNode(`🤹 ${msg}`);
+      node.appendChild(textnode);
+      document.getElementById("term").appendChild(node);
+  }
+
+  const okGif = () => {
+       document.body.style.cssText = 'background: url(/images/bean.gif) no-repeat center center fixed; background-size: cover';
+  }
+  
+  const waitGif = () => {
+       document.body.style.cssText = 'background: url(/images/bean_wait.gif) no-repeat center center fixed; background-size: cover';
+  }
+
+  waitGif()
+
+  document.addEventListener('DOMContentLoaded', function() {
+      var info = document.getElementById("info");
+      info.innerHTML = "sesam open u";
+      // ------- MQTT
+      var mqtt;
+      let isAck = false;
+      const reconnectTimeout = 3000;
+
+      
+      const onConnect = () => {
+        termOk("connected :|");
+            
+        const sender = () => {
+                const message = new Paho.MQTT.Message("open");
+                message.destinationName = "open";
+                mqtt.send(message); 
+        }
+        
+        
+        const sub = () => {
+            mqtt.subscribe("ack");
+            mqtt.onMessageArrived = (message) => {
+                isAck = true;
+                // clearInterval(retry)
+                termOk("got a ack")
+                console.log("Message Arrived: "+message.payloadString);
+                setTimeout(() => {
+                   okGif()
+                }, 200);
+                setTimeout(() => {
+                  window.close();
+                }, 2000);
+            }
+            setTimeout(() => {
+              console.log("time out");
+              if(!isAck) {
+                sub()
+                sender()
+                termOk("msg open send")
+              }
+            }, 1000)
+            
+        }
+        
+        const noAck =(count) => {
+          for(i = 0; i < count; i++) {
+            setTimeout(() => {
+              termFail("geen ack");
+              sender()
+            }, i * 300)
+          }
+        }
+        
+        sub()
+        sender()
+        termWait("subscribe on ack")
+        
+        // setTimeout(() => {
+        //   sender()
+        //   termOk("msg open send")
+        // }, 150)
+        
+        // if(!isAck) {
+        //   noAck(3);
+        // }
+        
+      }
+      
+      const MQTTconnect = () => {
+        termWait(`mqtt host: ${CONN.host} port: ${CONN.port}`);
+        
+        id = Math.floor(Math.random()*1000)
+        
+        mqtt = new Paho.MQTT.Client(CONN.host, CONN.port,`webclient${id}`);
+        
+        var options = {
+            timeout: 3,
+            onSuccess: onConnect,
+            useSSL: true,
+            userName: CONN.user,
+            password: CONN.password
+         };
+        mqtt.connect(options); 
+      }
+      termOk("geladen")
+      MQTTconnect();
+  });  
+
+
+  </script>
+  </body>
+</html>
